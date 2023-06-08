@@ -1,18 +1,154 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+datasource db {
+    provider     = "mysql"
+    url          = env("DATABASE_URL")
+    relationMode = "prisma"
+}
+
 generator client {
     provider = "prisma-client-js"
-    previewFeatures = ["jsonProtocol"]
 }
 
-datasource db {
-    provider = "sqlite"
-    url      = env("DATABASE_URL")
+model User {
+    id            Int             @id @default(autoincrement())
+    name          String
+    email         String          @unique
+    password      String?
+    phone         String?
+    salt          String?
+    hash          String?
+    googleId      String?         @map("google_id")
+    createdAt     DateTime        @default(now()) @map("created_at")
+    updatedAt     DateTime        @default(now()) @map("updated_at")
+    deletedAt     DateTime?       @map("deleted_at")
+    Ticket        Ticket[]
+    Payment       Payment[]
+    CustomerOrder CustomerOrder[]
 }
 
-model Example {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model Type {
+    id        Int       @id @default(autoincrement())
+    title     String
+    createdAt DateTime  @default(now()) @map("created_at")
+    updatedAt DateTime  @default(now()) @map("updated_at")
+    deletedAt DateTime? @map("deleted_at")
+    Concert   Concert[]
+}
+
+model Concert {
+    id             Int              @id @default(autoincrement())
+    name           String
+    startDate      DateTime         @map("start_date")
+    endDate        DateTime         @map("end_date")
+    location       String
+    info           String
+    map            String
+    time           DateTime
+    seats          Int
+    active         Boolean          @default(true)
+    banner         String
+    description    String
+    typeId         Int              @map("type_id")
+    type           Type             @relation(fields: [typeId], references: [id])
+    createdAt      DateTime         @default(now()) @map("created_at")
+    updatedAt      DateTime         @default(now()) @map("updated_at")
+    deletedAt      DateTime?        @map("deleted_at")
+    TicketCategory TicketCategory[]
+    Ticket         Ticket[]
+    Payment        Payment[]
+
+    @@index([typeId])
+}
+
+model TicketCategory {
+    id          Int       @id @default(autoincrement())
+    class       String
+    description String
+    area        String
+    price       Float
+    seats       Float
+    concertId   Int       @map("concert_id")
+    concert     Concert   @relation(fields: [concertId], references: [id])
+    active      Boolean   @default(true)
+    createdAt   DateTime  @default(now()) @map("created_at")
+    updatedAt   DateTime  @default(now()) @map("updated_at")
+    deletedAt   DateTime? @map("deleted_at")
+    Ticket      Ticket[]
+
+    @@index([concertId])
+}
+
+model Ticket {
+    id                  Int                   @id @default(autoincrement())
+    serialNum           String                @map("serial_num")
+    ticketCategoryId    Int                   @map("ticket_category_id")
+    ticketCategory      TicketCategory        @relation(fields: [ticketCategoryId], references: [id])
+    seat                String
+    note                String?
+    scanned             Boolean               @default(false)
+    scanner             String?
+    soldFrom            String?               @map("sold_from")
+    invitation          Boolean?              @default(false)
+    concertId           Int                   @map("concert_id")
+    concert             Concert               @relation(fields: [concertId], references: [id])
+    userId              Int                   @map("user_id")
+    user                User                  @relation(fields: [userId], references: [id])
+    deletedAt           DateTime?             @map("deleted_at")
+    createdAt           DateTime              @default(now()) @map("created_at")
+    updatedAt           DateTime              @default(now()) @map("updated_at")
+    CustomerOrderTicket CustomerOrderTicket[]
+
+    @@index([ticketCategoryId])
+    @@index([concertId])
+    @@index([userId])
+}
+
+model Payment {
+    id            Int             @id @default(autoincrement())
+    userId        Int             @map("user_id")
+    user          User            @relation(fields: [userId], references: [id])
+    concertId     Int             @map("concert_id")
+    concert       Concert         @relation(fields: [concertId], references: [id])
+    total         Float
+    cardNum       String          @map("card_num")
+    deletedAt     DateTime?       @map("deleted_at")
+    createdAt     DateTime        @default(now()) @map("created_at")
+    updatedAt     DateTime        @default(now()) @map("updated_at")
+    CustomerOrder CustomerOrder[]
+
+    @@index([userId])
+    @@index([concertId])
+}
+
+model CustomerOrder {
+    id                  Int                   @id @default(autoincrement())
+    userId              Int                   @map("user_id")
+    user                User                  @relation(fields: [userId], references: [id])
+    paymentId           Int                   @map("payment_id")
+    payment             Payment               @relation(fields: [paymentId], references: [id])
+    totalPrice          Float                 @map("total_price")
+    discount            Float
+    deletedAt           DateTime?             @map("deleted_at")
+    createdAt           DateTime              @default(now()) @map("created_at")
+    updatedAt           DateTime              @default(now()) @map("updated_at")
+    CustomerOrderTicket CustomerOrderTicket[]
+
+    @@index([userId])
+    @@index([paymentId])
+}
+
+model CustomerOrderTicket {
+    id              Int           @id @default(autoincrement())
+    customerOrderId Int           @map("customer_order_id")
+    customerOrder   CustomerOrder @relation(fields: [customerOrderId], references: [id])
+    ticketId        Int           @map("ticket_id")
+    ticket          Ticket        @relation(fields: [ticketId], references: [id])
+    deletedAt       DateTime?     @map("deleted_at")
+    createdAt       DateTime      @default(now()) @map("created_at")
+    updatedAt       DateTime      @default(now()) @map("updated_at")
+
+    @@index([customerOrderId])
+    @@index([ticketId])
 }
